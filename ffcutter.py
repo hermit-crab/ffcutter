@@ -924,7 +924,7 @@ class GUI(QtWidgets.QDialog):
         list_file = os.path.join(self.tmpdir, just_name + ext + '.parts')
         with open(list_file, 'w') as f:
             for file in tmpfiles:
-                f.write('file \'%s\'\n' % os.path.abspath(file))
+                f.write('file \'%s\'\n' % os.path.abspath(file).replace("'", "'\\''"))
 
         concat_command = [ffmpeg, '-f', 'concat', '-safe', '0', '-i', list_file, '-y', '-c', 'copy', outfile]
 
