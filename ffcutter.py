@@ -26,14 +26,12 @@ from gui import Ui_root
 doc = """ffcutter
 
 Usage:
-    ffcutter <video-file> [-s <save-file> --no-index --mpv=mpv-option...]
+    ffcutter <video-file> [-s <save-file> --mpv=mpv-option...]
     ffcutter -h | --help
 
 Options:
     -s <save-file>          Specify save file. Default is "filename.ffcutter" inside working directory.
     -m --mpv mpv-option     Specify additional mpv option or change the default ones.
-    --no-index              Don't build video frames index.
-                            For big files it may take awhile, e.g. ~7min for 1 hour 720p movie.
 
 Examples:
     ffcutter ./movie.mkv
@@ -70,7 +68,7 @@ If program crashes try to rerun it (duh).
 """
 
 # TODO
-# find mkv weird offset using mpv screensots
+# find stream copy accuracy offsets by trial end error
 
 
 class GUI(QtWidgets.QDialog):
@@ -80,7 +78,7 @@ class GUI(QtWidgets.QDialog):
     frameindex_built = QtCore.pyqtSignal()
     shell_message = QtCore.pyqtSignal(str)
 
-    def __init__(self, filename, save_filename=None, mpv_options=[], decode=False):
+    def __init__(self, filename, save_filename=None, mpv_options=[], skip_index=False):
         super().__init__()
 
         self.filename = filename
@@ -182,11 +180,11 @@ class GUI(QtWidgets.QDialog):
             self.show()
             self.init_player()
 
-        if not self.ffprobe_bin:
+        if not self.ffprobe_bin or skip_index:
             on_frameindex_built()
         else:
             self.frameindex_built.connect(on_frameindex_built)
-            threading.Thread(target=self.load_ffmpeg_frames_info, args=[decode]).start()
+            threading.Thread(target=self.load_ffmpeg_frames_info).start()
 
         # SIGINT handling trickery
 
@@ -203,156 +201,6 @@ class GUI(QtWidgets.QDialog):
             self.player.terminate()
             QtWidgets.QApplication.quit()
 
-    def load_ffmpeg_frames_info(self, decode=False):
-        # get frames timestamps and find iframes
-        # (if this look like nonsense to you, sorry, I'm not very good in video processing)
-
-        # for full mode
-        index_file = os.path.split(self.filename)[1] + '.frames'
-        index_file = os.path.join(self.tmpdir, index_file)
-        # for fast mode
-        naive_index_file = os.path.split(self.filename)[1] + '.naive_frames'
-        naive_index_file = os.path.join(self.tmpdir, naive_index_file)
-
-        def wait(proc):
-            if proc.wait() != 0:
-                self.print_error('Failed building frame index.\n' +
-                                 '    Command: %s\n' % ' '.join(proc.args) +
-                                 '    Exit code: %s' % proc.returncode)
-            return proc.returncode
-
-        if decode and not os.path.exists(index_file):
-            self.print('Building video frames index.')
-
-            # get video duration to be able to show progress
-
-            frames_len = None
-
-            cmd = [self.ffmpeg_bin] + '-i -c copy -f null'.split() + [os.devnull]
-            cmd.insert(2, self.filename)
-            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-            out = proc.stderr.read().decode()
-            matches = re.findall(r'frame=\s*(\d+)', out)
-            if matches:
-                frames_len = int(matches[-1])
-
-            # start the building process
-
-            cmd = [self.ffprobe_bin] + '-show_frames -show_entries frame=best_effort_timestamp_time,pict_type -select_streams v -v error'.split()
-            cmd.append(self.filename)
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-
-            def progress(n):
-                msg = '\rProcessed: %s/%s' % (n, frames_len or '?')
-                if frames_len:
-                    msg += ' (%d%%)' % (n/(frames_len/100))
-                self.print(msg, end='')
-
-            n = 0
-            while True:
-                line = proc.stdout.readline()
-                if not line:
-                    break
-
-                if b'best_effort_timestamp_time=' in line:
-                    try:
-                        self.pts.append(float(line.split(b'=')[1]))
-                    except Exception:
-                        self.pts.append(None)
-                    n += 1
-                    if n % 100 == 0:
-                        progress(n)
-                elif b'pict_type=I\n' == line:
-                    self.ipts.append(self.pts[-1])
-
-            progress(n)
-            self.print()
-
-            if wait(proc):
-                return
-
-            with open(index_file, 'w') as f:
-                json.dump([self.pts, self.ipts], f)
-
-            self.pts = [t for t in self.pts if t]
-            self.ipts = [t for t in self.ipts if t]
-
-        elif not decode and not os.path.exists(index_file) and not os.path.exists(naive_index_file):
-
-            self.print('Building video frames index in fast mode.')
-
-            cmd = [self.ffprobe_bin] + '-show_packets -show_entries packet=pts_time,dts_time,flags -select_streams v -v error'.split()
-            cmd.append(self.filename)
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-            pts = None
-            error = False
-            while True:
-                line = proc.stdout.readline()
-                if not line:
-                    break
-
-                if b'=K' in line:
-                    self.ipts.append(self.pts[-1])
-                elif line.startswith(b'dts_time='):
-                    try:
-                        self.pts.append(float(line.split(b'=')[1]))
-                    except Exception:
-                        if pts:
-                            self.pts.append(pts)
-                        else:
-                            error = True
-                elif line.startswith(b'pts_time='):
-                    try:
-                        pts = self.pts.append(float(line.split(b'=')[1]))
-                    except Exception:
-                        pts = None
-
-            if wait(proc):
-                return
-
-            self.pts = list(sorted(set(self.pts)))
-            self.ipts = list(sorted(set(self.ipts)))
-
-            # filter out pts of incomplete packets
-            q = collections.deque(maxlen=8)
-            for t in sorted(set(self.pts)):
-                rm = []
-                for v in q:
-                    if abs(v-t) < 0.0085:
-                        if v < t:
-                            rm.add(v)
-                            error = True
-                for v in rm:
-                    q.remove(v)
-                    self.pts.remove(v)
-                    try:
-                        self.ipts[self.ipts.index(v)] = t
-                    except Exception:
-                        pass
-
-            with open(naive_index_file, 'w') as f:
-                json.dump([self.pts, self.ipts], f)
-
-            if error:
-                self.print_error('Errors encountered during timestamps retrieval.\n' +
-                                 '    Encoding may be inaccurate.')
-
-        elif os.path.exists(index_file):
-
-            with open(index_file) as f:
-                self.pts, self.ipts = json.load(f)
-                self.pts = [t for t in self.pts if t]
-                self.ipts = [t for t in self.ipts if t]
-
-        elif os.path.exists(naive_index_file):
-
-            with open(naive_index_file) as f:
-                self.pts, self.ipts = json.load(f)
-                self.pts = [t for t in self.pts if t]
-                self.ipts = [t for t in self.ipts if t]
-
-        self.frameindex_built.emit()
-
     def check_ffmpeg_seek_problem(self):
         self.print('Testing if ffmpeg stream copy seeking on this file works correctly...')
 
@@ -363,24 +211,19 @@ class GUI(QtWidgets.QDialog):
                 except Exception:
                     pass
 
-        def wait(proc):
-            if proc.wait() != 0:
-                self.print_error('Failed testing ffmpeg.\n' +
-                                 '    Command: %s\n' % ' '.join(proc.args) +
-                                 '    Exit code: %s' % proc.returncode)
-                clean()
-            return proc.returncode
-
         first_frame1 = os.path.join(self.tmpdir, 'sample1.png')
         tmpfile = os.path.join(self.tmpdir, 'sample2' + os.path.splitext(self.filename)[1])
         first_frame2 = os.path.join(self.tmpdir, 'sample2.png')
+
+        errmsg = 'Failed testing ffmpeg.'
 
         # get frame with encoding on
 
         cmd = [self.ffmpeg_bin] + '-i FILE -y -frames 1 -v error'.split() + [first_frame1]
         cmd[2] = self.filename
         proc = subprocess.Popen(cmd)
-        if wait(proc):
+        if self._wait(proc, errmsg):
+            clean()
             return
 
         # get frame with encoding off and try to find offset
@@ -392,7 +235,8 @@ class GUI(QtWidgets.QDialog):
         cmd[5] = str(self.playback_pos)
 
         proc = subprocess.Popen(cmd)
-        if wait(proc):
+        if self._wait(proc, errmsg):
+            clean()
             return
 
         # get that video first frame
@@ -400,7 +244,8 @@ class GUI(QtWidgets.QDialog):
         cmd = [self.ffmpeg_bin] + '-i -y -frames 1 -v error'.split() + [first_frame2]
         cmd.insert(2, tmpfile)
         proc = subprocess.Popen(cmd)
-        if wait(proc):
+        if self._wait(proc, errmsg):
+            clean()
             return
 
         with open(first_frame1, 'rb') as frame1, open(first_frame2, 'rb') as frame2:
@@ -436,6 +281,160 @@ class GUI(QtWidgets.QDialog):
     def toggle_args_editor(self):
         editor = self.ui.argsEdit
         editor.setHidden(not editor.isHidden())
+
+    # Frame index #################################################################################
+    ###############################################################################################
+
+    def _wait(self, proc, msg):
+        if proc.wait() != 0:
+            self.print_error('%s\n' % msg +
+                             '    Command: %s\n' % ' '.join(proc.args) +
+                             '    Exit code: %s' % proc.returncode)
+        return proc.returncode
+
+    def load_ffmpeg_frames_info(self):
+        # get frames timestamps and find keyframes
+        # (if this look like nonsense to you, sorry, I'm not very good in video processing)
+
+        index_file = '%s.%s.frames' % (os.path.split(self.filename)[1], os.path.getsize(self.filename))
+        index_file = os.path.join(self.tmpdir, index_file)
+
+        if os.path.exists(index_file):
+            self.print('Frames index loaded from %s' % index_file)
+            with open(index_file) as f:
+                self.pts, self.ipts = json.load(f)
+        else:
+            self.print('Building video frames index.')
+            ret = self._load_timestamps_from_packets()
+            if not ret:
+                self.print('Building video frames index in full mode.')
+                ret = self._load_timestamps_from_frames()
+
+            if not ret:
+                self.print_error('Filed building frames index.')
+            else:
+                self.pts, self.ipts = ret
+                with open(index_file, 'w') as f:
+                    json.dump([self.pts, self.ipts], f)
+
+        self.frameindex_built.emit()
+
+    def _load_timestamps_from_frames(self):
+
+        # get video duration to be able to show progress
+
+        frames_len = None
+
+        cmd = [self.ffmpeg_bin] + '-i -c copy -f null'.split() + [os.devnull]
+        cmd.insert(2, self.filename)
+        proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
+        out = proc.stderr.read().decode()
+        matches = re.findall(r'frame=\s*(\d+)', out)
+        if matches:
+            frames_len = int(matches[-1])
+
+        # start the building process
+
+        cmd = [self.ffprobe_bin] + '-show_frames -show_entries frame=best_effort_timestamp_time,pict_type -select_streams v -v error'.split()
+        cmd.append(self.filename)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+        def progress(n):
+            msg = '\rProcessed: %s/%s' % (n, frames_len or '?')
+            if frames_len:
+                msg += ' (%d%%)' % (n/(frames_len/100))
+            self.print(msg, end='')
+
+        n = 0
+        pts = []
+        ipts = []
+        while True:
+            line = proc.stdout.readline()
+            if not line:
+                break
+
+            if b'best_effort_timestamp_time=' in line:
+                try:
+                    pts.append(float(line.split(b'=')[1]))
+                except Exception:
+                    pass
+                n += 1
+                if n % 100 == 0:
+                    progress(n)
+            elif b'pict_type=I\n' == line:
+                ipts.append(pts[-1])
+
+        progress(n)
+        self.print()
+
+        if self._wait(proc, 'Failed building frames index.'):
+            return
+
+        if pts:
+            return pts, ipts
+
+    def _load_timestamps_from_packets(self):
+
+        cmd = [self.ffprobe_bin] + '-show_packets -show_entries packet=pts_time,dts_time,flags -select_streams v -v error'.split()
+        cmd.append(self.filename)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+        pts = []
+        dts = []
+        ipts = []
+        packetn = 0
+        while True:
+            line = proc.stdout.readline()
+            if not line:
+                break
+
+            if b'=K' in line:
+                # prefer pts
+                try:
+                    ipts.append(pts[packetn-1])
+                except IndexError:
+                    try:
+                        ipts.append(dts[packetn-1])
+                    except IndexError:
+                        pass
+            elif line[1:9] == b'ts_time=':
+                if line.startswith(b'p'):
+                    packetn += 1
+
+                v = line.split(b'=')[1]
+                try:
+                    v = float(v)
+                    if v >= 0:
+                        if line.startswith(b'p'):
+                            pts.append(v)
+                        else:
+                            dts.append(v)
+                except ValueError:
+                    pass
+
+        if self._wait(proc, 'Failed building frames index.'):
+            return
+
+        pts = [t for t in sorted(set(pts + dts))]
+        ipts = [t for t in sorted(set(ipts))]
+
+        # filter out pts of incomplete packets
+        q = collections.deque(maxlen=10)
+        for t in sorted(set(pts)):
+            rm = []
+            for v in q:
+                if abs(v-t) <= 0.002:
+                    rm.append(v)
+            for v in rm:
+                q.remove(v)
+                pts.remove(v)
+                try:
+                    ipts[ipts.index(v)] = t
+                except Exception:
+                    pass
+
+        if pts:
+            return pts, ipts
 
     # Info messages ###############################################################################
     ###############################################################################################
@@ -534,6 +533,7 @@ class GUI(QtWidgets.QDialog):
         i = sidesi(self.playback_pos, self.ipts, min_diff=1/self.player.fps)[0 if backwards else 1]
 
         if i is not None:
+            # TODO sometimes such mpv exact seek fail, fix it somehow
             self.player.seek(self.ipts[i], 'absolute', 'exact')
 
     def keyPressEvent(self, event):
@@ -631,6 +631,8 @@ class GUI(QtWidgets.QDialog):
 
         elif k == Qt.Key_K:
 
+            if not self.show_keyframes and not self.ipts:
+                self.print('No keyframes information.')
             self.show_keyframes = not self.show_keyframes
             self.ui.seekbar.update()
 
@@ -800,7 +802,6 @@ class GUI(QtWidgets.QDialog):
 
                     if not last_frame:
                         segments.append((t, self.playback_len))
-
 
     def adjust_segements(self, segments):
 
@@ -1281,8 +1282,11 @@ if __name__ == '__main__':
     # for qt + mpv
     locale.setlocale(locale.LC_NUMERIC, 'C')
 
+    no_index = '--no-index' in sys.argv
+    if no_index:
+        sys.argv.remove('--no-index')
     args = docopt(doc)
-    gui = GUI(args['<video-file>'], args['-s'], args['--mpv'], not args['--no-index'])
+    gui = GUI(args['<video-file>'], args['-s'], args['--mpv'], no_index)
 
     # for qt + ctrl-c
     signal.signal(signal.SIGINT, lambda *_: gui.interrupt())
