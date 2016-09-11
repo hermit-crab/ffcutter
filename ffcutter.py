@@ -877,7 +877,7 @@ class GUI(QtWidgets.QDialog):
         self.adjust_segements(segments)
 
         for _ in segments:
-            tmpfile = '%s.part%s%s' % (path_name, len(tmpfiles), ext)
+            tmpfile = '%s.part%03d%s' % (path_name, len(tmpfiles), ext)
             tmpfiles.append(tmpfile)
 
         # generate the commands
@@ -1269,7 +1269,7 @@ def default_open(filepath):
     elif os.name == 'nt':
         os.startfile(filepath)
     elif os.name == 'posix':
-        subprocess.call(('xdg-open', filepath), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        subprocess.Popen(('xdg-open', filepath), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':
