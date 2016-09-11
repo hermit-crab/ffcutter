@@ -61,6 +61,7 @@ GUI keys:
     x - Remove highlighted anchor.
 
     k - Show keyframes on the seekbar.
+    i - Print input file information to the terminal.
     o - Open resulted file.
     ctrl + o - Open its directory.
 
@@ -451,6 +452,38 @@ class GUI(QtWidgets.QDialog):
             line += ' (%d)' % self.anchor
         self.print(line)
 
+    def print_video_info(self):
+        proc = subprocess.run([self.ffmpeg_bin, '-i', self.filename], stderr=subprocess.PIPE)
+        no = True
+        self.print()
+        term = shutil.get_terminal_size((80, 20))
+
+        def sep(title=''):
+            self.print('--' + title + '-' * (term.columns-2-len(title)))
+
+        self.print()
+        for line in proc.stderr.decode().splitlines():
+            if line.startswith('Input'):
+                no = False
+            if no:
+                continue
+
+            if ': Video:' in line:
+                self.print()
+                sep('VIDEO')
+                color = colorama.Fore.LIGHTCYAN_EX
+                style = colorama.Style.BRIGHT
+                reset = colorama.Style.RESET_ALL
+                # we (I) are mostly interested in video bitrate, so
+                line = re.sub(r'\b\d+\s+\w+/s\b', color + style + r'\g<0>' + reset, line)
+                self.print(line)
+            else:
+                if ': Audio:' in line:
+                    self.print()
+                    sep('AUDIO')
+                self.print(line)
+        self.print()
+
     # Player ######################################################################################
     ###############################################################################################
 
@@ -568,6 +601,10 @@ class GUI(QtWidgets.QDialog):
         elif k == Qt.Key_Escape:
 
             self.setFocus(True)
+
+        elif k == Qt.Key_I:
+
+            self.print_video_info()
 
         ################################
 
