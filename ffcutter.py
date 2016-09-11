@@ -198,7 +198,6 @@ class GUI(QtWidgets.QDialog):
             self.interrupted = True
         else:
             self.print('Exiting gracefully.')
-            self.player.terminate()
             QtWidgets.QApplication.quit()
 
     def check_ffmpeg_seek_problem(self):
