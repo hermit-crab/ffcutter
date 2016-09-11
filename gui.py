@@ -70,7 +70,7 @@ class Ui_root(object):
         self.horizontalLayout_2.addWidget(self.encode)
         self.twoPass = QtWidgets.QCheckBox(self.widget)
         self.twoPass.setCheckable(True)
-        self.twoPass.setChecked(True)
+        self.twoPass.setChecked(False)
         self.twoPass.setObjectName("twoPass")
         self.horizontalLayout_2.addWidget(self.twoPass)
         self.toggleArgsEdit = QtWidgets.QToolButton(self.widget)

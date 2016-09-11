@@ -1,7 +1,7 @@
 ###ffcutter
 Command line + gui utility to cut videos using ffmpeg.
 
-![Screenshot](http://i.imgur.com/bbc2KU1.png)
+![Screenshot](http://i.imgur.com/IwVuoMG.png)
 
 ####Dependencies
 Python 3  
