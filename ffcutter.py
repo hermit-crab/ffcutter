@@ -21,6 +21,7 @@ from PyQt5.QtCore import Qt
 
 from mpv import MPV
 from gui import Ui_root
+from shift_dialog import Ui_Dialog
 
 
 doc = """ffcutter
@@ -65,11 +66,13 @@ GUI keys:
     o - Open resulted file.
     ctrl + o - Open its directory.
 
+    f - Input frame start/end shift which will be applied to all segments during encoding / stream copy.
+
 If program crashes try to rerun it (duh).
 """
 
 # TODO
-# find stream copy accuracy offsets by trial end error
+# handle keystrokes from terminal?
 
 
 class GUI(QtWidgets.QDialog):
@@ -95,6 +98,11 @@ class GUI(QtWidgets.QDialog):
 
         self.show_keyframes = False
         self.running_ffmpeg = False
+
+        self.pts = []
+        self.ipts = []
+        self.ffmpeg_shift_a = 0
+        self.ffmpeg_shift_b = 0
 
         self.tmpdir = os.path.join(tempfile.gettempdir(), 'ffcutter')
         try:
@@ -126,9 +134,14 @@ class GUI(QtWidgets.QDialog):
         text = re.sub(r'out:[^\S\n]*\n', 'out: %s\n' % outfile, text)
         editor.setPlainText(text)
 
+        def toggle_editor():
+            editor.setHidden(not editor.isHidden())
+            if not editor.isHidden():
+                editor.setFocus(True)
+
         editor.hide()
         editor.textChanged.connect(self.save_state)
-        self.ui.toggleArgsEdit.clicked.connect(lambda: editor.setHidden(not editor.isHidden()))
+        self.ui.toggleArgsEdit.clicked.connect(toggle_editor)
 
         self.ui.twoPass.setEnabled(False)
         self.ui.encode.toggled.connect(lambda: self.ui.twoPass.setEnabled(self.ui.encode.isChecked()))
@@ -145,6 +158,21 @@ class GUI(QtWidgets.QDialog):
         self.refresh_statusbar_timer = QtCore.QTimer(self)
         self.refresh_statusbar_timer.setInterval(300)
         self.refresh_statusbar_timer.timerEvent = lambda _: self.update_statusbar()
+
+        def set_shifts():
+            self.ffmpeg_shift_a = wrapper.a.value()
+            self.ffmpeg_shift_b = wrapper.b.value()
+            self.save_state()
+
+        dialog = QtWidgets.QDialog(self)
+        wrapper = Ui_Dialog()
+        wrapper.setupUi(dialog)
+        wrapper.a.setValue(self.ffmpeg_shift_a)
+        wrapper.b.setValue(self.ffmpeg_shift_b)
+        dialog.accepted.connect(set_shifts)
+
+        self.shifts_dialog = dialog
+        self.shifts_dialog_ui = wrapper
 
         # check if necessary binaries are present
 
@@ -165,17 +193,6 @@ class GUI(QtWidgets.QDialog):
 
         # get frames timestamps and find keyframes
         # inside separate thread because long blocking calls crash qt application
-
-        # also check if ffmpeg stream copy seeking is ok (I had this problem on a few mkv files)
-        # shift variables hold the number on which
-        # each segment should be shifted to achieve accuracy
-        # TODO: implement or get rid of this trickery if possible
-
-        self.pts = []
-        self.ipts = []
-        self.ffmpeg_seeking_problem = False
-        self.ffmpeg_shift_a = 0
-        self.ffmpeg_shift_b = 0
 
         def on_frameindex_built():
             self.show()
@@ -252,7 +269,6 @@ class GUI(QtWidgets.QDialog):
             hash1 = hashlib.md5(frame1.read()).hexdigest()
             hash2 = hashlib.md5(frame2.read()).hexdigest()
             if hash1 != hash2:
-                self.ffmpeg_seeking_problem = True
                 self.print_error('FFmpeg stream copy seeking seem to work incorrectly.\n' +
                                  '    No-encode mode will most likely be inaccurate.')
             else:
@@ -278,14 +294,10 @@ class GUI(QtWidgets.QDialog):
 
         self.ui.status.setText(text)
 
-    def toggle_args_editor(self):
-        editor = self.ui.argsEdit
-        editor.setHidden(not editor.isHidden())
-
     # Frame index #################################################################################
     ###############################################################################################
 
-    def _wait(self, proc, msg):
+    def _wait(self, proc, msg='Failed executing command.'):
         if proc.wait() != 0:
             self.print_error('%s\n' % msg +
                              '    Command: %s\n' % ' '.join(proc.args) +
@@ -542,7 +554,6 @@ class GUI(QtWidgets.QDialog):
         player.observe_property('duration', on_playback_len)
         player.play(self.filename)
 
-
     # Keyboard events #############################################################################
     ###############################################################################################
 
@@ -578,7 +589,7 @@ class GUI(QtWidgets.QDialog):
 
             QtWidgets.QApplication.quit()
 
-        elif k == Qt.Key_D:
+        elif k == Qt.Key_D and ctrl:
 
             try:
                 import ptpdb
@@ -672,6 +683,11 @@ class GUI(QtWidgets.QDialog):
             self.show_keyframes = not self.show_keyframes
             self.ui.seekbar.update()
 
+        elif k == Qt.Key_F:
+
+            self.shifts_dialog_ui.a.setValue(self.ffmpeg_shift_a)
+            self.shifts_dialog_ui.b.setValue(self.ffmpeg_shift_b)
+            self.shifts_dialog.show()
 
         self.update_statusbar()
 
@@ -779,6 +795,7 @@ class GUI(QtWidgets.QDialog):
             'ffargs': self.ui.argsEdit.toPlainText(),
             'encode': self.ui.encode.isChecked(),
             '2-pass': self.ui.twoPass.isChecked(),
+            'shifts': (self.ffmpeg_shift_a, self.ffmpeg_shift_b),
         }
 
     def apply_state(self, state):
@@ -803,7 +820,9 @@ class GUI(QtWidgets.QDialog):
         self.ui.twoPass.setChecked(state.get('2-pass', False))
         self.ui.twoPass.setEnabled(self.ui.encode.isChecked())
 
-        self.anchor = state['anchor']
+        self.ffmpeg_shift_a, self.ffmpeg_shift_b = state.get('shifts', (0, 0))
+
+        self.anchor = state.get('anchor')
 
         self.ui.seekbar.update()
 
@@ -853,8 +872,8 @@ class GUI(QtWidgets.QDialog):
             else:
                 a += frame_duration
 
-            #     a += frame_duration * self.ffmpeg_copy_frames_shift_a
-            #     b += frame_duration * self.ffmpeg_copy_frames_shift_b
+            a += frame_duration * self.ffmpeg_shift_a
+            b += frame_duration * self.ffmpeg_shift_b
 
             a = closest(a, self.pts, max_diff=frame_duration) or a
             b = closest(b, self.pts, max_diff=frame_duration) or b

@@ -155,6 +155,9 @@
         <property name="text">
          <string>Edit Args</string>
         </property>
+        <property name="shortcut">
+         <string>E</string>
+        </property>
        </widget>
       </item>
       <item>
@@ -168,6 +171,9 @@
         <property name="text">
          <string>Print</string>
         </property>
+        <property name="shortcut">
+         <string>P</string>
+        </property>
        </widget>
       </item>
       <item>
@@ -180,6 +186,9 @@
         </property>
         <property name="text">
          <string>Run</string>
+        </property>
+        <property name="shortcut">
+         <string>R</string>
         </property>
        </widget>
       </item>

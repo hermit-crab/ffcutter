@@ -134,10 +134,13 @@ class Ui_root(object):
         self.twoPass.setText(_translate("root", "2-pass"))
         self.toggleArgsEdit.setToolTip(_translate("root", "Show/hide ffmpeg arguments editor"))
         self.toggleArgsEdit.setText(_translate("root", "Edit Args"))
+        self.toggleArgsEdit.setShortcut(_translate("root", "E"))
         self.print.setToolTip(_translate("root", "Print ffmpeg commands into terminal"))
         self.print.setText(_translate("root", "Print"))
+        self.print.setShortcut(_translate("root", "P"))
         self.run.setToolTip(_translate("root", "Run ffmpeg commands."))
         self.run.setText(_translate("root", "Run"))
+        self.run.setShortcut(_translate("root", "R"))
         self.argsEdit.setPlainText(_translate("root", "out: \n"
 "# FFmpeg output arguments.\n"
 "out-args: \n"
