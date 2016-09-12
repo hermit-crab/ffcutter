@@ -8,6 +8,7 @@ import locale
 import subprocess
 import collections
 import tempfile
+import itertools
 import shutil
 import json
 import traceback
@@ -72,8 +73,9 @@ If program crashes try to rerun it (duh).
 """
 
 # TODO
-# report number of negative video timestamps (audio delay?) and set that number as global frames shift
-# don't ad -ss if segment begins from the first frame, same for -to
+# write installation guide
+# make windows standalone executable
+# merge gui modules as one
 # handle keystrokes from terminal too
 # mpv keyframe/anchor jumps often fail, any way to fix that?
 # don't generate concat when just one segment
@@ -430,6 +432,23 @@ class GUI(QtWidgets.QDialog):
 
     def _load_timestamps_from_packets(self):
 
+        # get first frame timestamp reliably
+        first_frame = None
+        cmd = [self.ffprobe_bin, self.filename] + '-show_frames -show_entries frame=best_effort_timestamp_time -select_streams v -v error'.split()
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        while True:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            if b'=' in line:
+                try:
+                    first_frame = float(line.split(b'=')[1])
+                except Exception:
+                    pass
+                break
+        proc.terminate()
+
+
         cmd = [self.ffprobe_bin, self.filename] + '-show_packets -show_entries packet=pts_time,dts_time,flags -select_streams v -v error'.split()
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
@@ -471,6 +490,10 @@ class GUI(QtWidgets.QDialog):
 
         pts = [t for t in sorted(set(pts + dts))]
         ipts = [t for t in sorted(set(ipts))]
+
+        # remove packets before first frame
+        if first_frame:
+            pts = list(itertools.dropwhile(lambda t: t < first_frame, pts))
 
         # filter out pts of incomplete packets
         q = collections.deque(maxlen=10)
@@ -881,6 +904,13 @@ class GUI(QtWidgets.QDialog):
     # Encoding ####################################################################################
     ###############################################################################################
 
+    def is_start(self, t):
+        return t == 0 or (self.pts and closest(t, self.pts) == self.pts[0])
+
+    def is_end(self, t):
+        return ((self.playback_len - t) < (1/self.player.fps) or
+                (self.pts and closest(t, self.pts) == self.pts[-1]))
+
     def get_inversed_segments(self):
         segments = []
         anchors = [t for seg in self.segments for t in seg]
@@ -889,18 +919,13 @@ class GUI(QtWidgets.QDialog):
             if i % 2 == 0: # a
                 if prev is None:
                     prev = 0
-                first_frame = (t == 0 or
-                               (self.pts and closest(t, self.pts) == self.pts[0]))
 
-                if not first_frame:
+                if not self.is_start(t):
                     segments.append((prev, t))
             else: # b
                 prev = t
                 if i == len(anchors)-1:
-                    last_frame = ((self.playback_len - t) < (1/self.player.fps) or
-                                  (self.pts and closest(t, self.pts) == self.pts[-1]))
-
-                    if not last_frame:
+                    if not self.is_end(t):
                         segments.append((t, self.playback_len))
         return segments
 
@@ -924,7 +949,12 @@ class GUI(QtWidgets.QDialog):
             a = closest(a, self.pts, max_diff=frame_duration) or a
             b = closest(b, self.pts, max_diff=frame_duration) or b
 
-            segments[i] = (round(a, 3), round(b, 3))
+            if self.is_start(a):
+                a = None
+            if self.is_end(b):
+                b = None
+
+            segments[i] = (a, b)
 
     def get_user_ffmpeg_args(self):
         outfile = None
@@ -1019,6 +1049,14 @@ class GUI(QtWidgets.QDialog):
                 a, b = seg
                 encode_command += ['-ss', str(a), '-to', str(b)] + outargs + [tmpfiles[i]]
             encode_commands.append(encode_command)
+
+        # remove -ss for segments that begins from start and -t for segments that end on end
+
+        for cmd in encode_commands:
+            while 'None' in cmd:
+                i = cmd.index('None')
+                cmd.pop(i)
+                cmd.pop(i-1)
 
         # Compiling "concatenate intermediate files" command ########
         #############################################################
