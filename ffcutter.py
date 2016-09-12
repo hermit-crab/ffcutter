@@ -72,7 +72,11 @@ If program crashes try to rerun it (duh).
 """
 
 # TODO
-# handle keystrokes from terminal?
+# report number of negative video timestamps (audio delay?) and set that number as global frames shift
+# don't ad -ss if segment begins from the first frame, same for -to
+# handle keystrokes from terminal too
+# mpv keyframe/anchor jumps often fail, any way to fix that?
+# don't generate concat when just one segment
 
 
 class GUI(QtWidgets.QDialog):
@@ -576,7 +580,6 @@ class GUI(QtWidgets.QDialog):
         i = sidesi(self.playback_pos, self.ipts, min_diff=1/self.player.fps)[0 if backwards else 1]
 
         if i is not None:
-            # TODO sometimes such mpv exact seek fail, fix it somehow
             self.player.seek(self.ipts[i], 'absolute', 'exact')
 
     def keyPressEvent(self, event):
