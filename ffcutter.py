@@ -179,6 +179,7 @@ class GUI(QtWidgets.QDialog):
 
         self.shifts_dialog = dialog
         self.shifts_dialog_ui = wrapper
+        self.shifts_dialog_ui.suggestion.hide()
 
         # check if necessary binaries are present
 
@@ -275,12 +276,49 @@ class GUI(QtWidgets.QDialog):
             hash1 = hashlib.md5(frame1.read()).hexdigest()
             hash2 = hashlib.md5(frame2.read()).hexdigest()
             if hash1 != hash2:
+                self.find_global_frame_shift()
                 self.print_error('FFmpeg stream copy seeking seem to work incorrectly.\n' +
-                                 '    No-encode mode will most likely be inaccurate.')
+                                 '    No-encode mode will most likely be inaccurate.\n' +
+                                 '    Use F key to adjust global offsets.')
             else:
                 self.print('FFmpeg stream copy seeking seem to work correctly.')
 
         clean()
+
+    def find_global_frame_shift(self):
+        cmd = [self.ffprobe_bin, self.filename] + '-show_frames -show_packets -select_streams v -print_format json=c=1 -v error'.split()
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        pts = []
+        while True:
+            line = proc.stdout.readline().decode()
+            if not line:
+                break
+            elif '"frame"' in line:
+                break
+
+            if '"packet"' in line and line.startswith('        {'):
+                packet = json.loads(line.strip()[:-1])
+                t = packet.get('dts_time', packet.get('pts_time', None))
+                if t is None:
+                    return
+                pts.append(float(t))
+
+        proc.terminate()
+
+        q = collections.deque(maxlen=10)
+        for t in sorted(set(pts)):
+            rm = []
+            for v in q:
+                if abs(v-t) <= 0.002:
+                    rm.append(v)
+            for v in rm:
+                q.remove(v)
+                pts.remove(v)
+
+        if len(pts) > 1:
+            label = self.shifts_dialog_ui.suggestion
+            label.show()
+            label.setText('%s -%s -%s' % (label.text(), len(pts)-1, len(pts)-1))
 
     def update_statusbar(self):
         if self.playback_pos is None:
