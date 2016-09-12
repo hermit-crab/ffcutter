@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui.ui'
+# Form implementation generated from reading ui file 'main.ui'
 #
 # Created by: PyQt5 UI code generator 5.7
 #
@@ -8,26 +8,26 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_root(object):
-    def setupUi(self, root):
-        root.setObjectName("root")
-        root.resize(617, 558)
+class Ui_main(object):
+    def setupUi(self, main):
+        main.setObjectName("main")
+        main.resize(617, 558)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(root.sizePolicy().hasHeightForWidth())
-        root.setSizePolicy(sizePolicy)
-        root.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.verticalLayout = QtWidgets.QVBoxLayout(root)
+        sizePolicy.setHeightForWidth(main.sizePolicy().hasHeightForWidth())
+        main.setSizePolicy(sizePolicy)
+        main.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.verticalLayout = QtWidgets.QVBoxLayout(main)
         self.verticalLayout.setContentsMargins(3, 3, 3, 3)
         self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.video = QtWidgets.QWidget(root)
+        self.video = QtWidgets.QWidget(main)
         self.video.setFocusPolicy(QtCore.Qt.NoFocus)
         self.video.setStyleSheet("background-color: rgb(117, 80, 123);")
         self.video.setObjectName("video")
         self.verticalLayout.addWidget(self.video)
-        self.widget = QtWidgets.QWidget(root)
+        self.widget = QtWidgets.QWidget(main)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -86,7 +86,7 @@ class Ui_root(object):
         self.run.setObjectName("run")
         self.horizontalLayout_2.addWidget(self.run)
         self.verticalLayout.addWidget(self.widget)
-        self.argsEdit = QtWidgets.QPlainTextEdit(root)
+        self.argsEdit = QtWidgets.QPlainTextEdit(main)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -95,7 +95,7 @@ class Ui_root(object):
         self.argsEdit.setMaximumSize(QtCore.QSize(16777215, 90))
         self.argsEdit.setObjectName("argsEdit")
         self.verticalLayout.addWidget(self.argsEdit)
-        self.seekbar = QtWidgets.QWidget(root)
+        self.seekbar = QtWidgets.QWidget(main)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -122,29 +122,97 @@ class Ui_root(object):
         self.horizontalLayout.addWidget(self.loading)
         self.verticalLayout.addWidget(self.seekbar)
 
-        self.retranslateUi(root)
-        QtCore.QMetaObject.connectSlotsByName(root)
+        self.retranslateUi(main)
+        QtCore.QMetaObject.connectSlotsByName(main)
 
-    def retranslateUi(self, root):
+    def retranslateUi(self, main):
         _translate = QtCore.QCoreApplication.translate
-        root.setWindowTitle(_translate("root", "ffcutter"))
-        self.keep.setText(_translate("root", "Keep"))
-        self.remove.setText(_translate("root", "Remove"))
-        self.encode.setText(_translate("root", "Encode"))
-        self.twoPass.setText(_translate("root", "2-pass"))
-        self.toggleArgsEdit.setToolTip(_translate("root", "Show/hide ffmpeg arguments editor"))
-        self.toggleArgsEdit.setText(_translate("root", "Edit Args"))
-        self.toggleArgsEdit.setShortcut(_translate("root", "E"))
-        self.print.setToolTip(_translate("root", "Print ffmpeg commands into terminal"))
-        self.print.setText(_translate("root", "Print"))
-        self.print.setShortcut(_translate("root", "P"))
-        self.run.setToolTip(_translate("root", "Run ffmpeg commands."))
-        self.run.setText(_translate("root", "Run"))
-        self.run.setShortcut(_translate("root", "R"))
-        self.argsEdit.setPlainText(_translate("root", "out: \n"
+        main.setWindowTitle(_translate("main", "ffcutter"))
+        self.keep.setText(_translate("main", "Keep"))
+        self.remove.setText(_translate("main", "Remove"))
+        self.encode.setText(_translate("main", "Encode"))
+        self.twoPass.setText(_translate("main", "2-pass"))
+        self.toggleArgsEdit.setToolTip(_translate("main", "Show/hide ffmpeg arguments editor"))
+        self.toggleArgsEdit.setText(_translate("main", "Edit Args"))
+        self.toggleArgsEdit.setShortcut(_translate("main", "E"))
+        self.print.setToolTip(_translate("main", "Print ffmpeg commands into terminal"))
+        self.print.setText(_translate("main", "Print"))
+        self.print.setShortcut(_translate("main", "P"))
+        self.run.setToolTip(_translate("main", "Run ffmpeg commands."))
+        self.run.setText(_translate("main", "Run"))
+        self.run.setShortcut(_translate("main", "R"))
+        self.argsEdit.setPlainText(_translate("main", "out: \n"
 "# FFmpeg output arguments.\n"
 "out-args: \n"
 "# FFmpeg Input arguments.\n"
 "in-args: "))
-        self.loading.setText(_translate("root", "Loading..."))
+        self.loading.setText(_translate("main", "Loading..."))
+
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'shift_dialog.ui'
+#
+# Created by: PyQt5 UI code generator 5.7
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+class Ui_shiftDialog(object):
+    def setupUi(self, shiftDialog):
+        shiftDialog.setObjectName("shiftDialog")
+        shiftDialog.setWindowModality(QtCore.Qt.NonModal)
+        shiftDialog.resize(240, 117)
+        shiftDialog.setSizeGripEnabled(False)
+        shiftDialog.setModal(True)
+        self.verticalLayout = QtWidgets.QVBoxLayout(shiftDialog)
+        self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.suggestion = QtWidgets.QLabel(shiftDialog)
+        self.suggestion.setEnabled(True)
+        self.suggestion.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.suggestion.setObjectName("suggestion")
+        self.verticalLayout.addWidget(self.suggestion)
+        self.widget = QtWidgets.QWidget(shiftDialog)
+        self.widget.setObjectName("widget")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
+        self.horizontalLayout.setContentsMargins(0, 9, 0, 9)
+        self.horizontalLayout.setSpacing(6)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.label = QtWidgets.QLabel(self.widget)
+        self.label.setObjectName("label")
+        self.horizontalLayout.addWidget(self.label)
+        self.a = QtWidgets.QSpinBox(self.widget)
+        self.a.setMinimum(-999)
+        self.a.setMaximum(999)
+        self.a.setObjectName("a")
+        self.horizontalLayout.addWidget(self.a)
+        spacerItem = QtWidgets.QSpacerItem(5, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
+        self.label_2 = QtWidgets.QLabel(self.widget)
+        self.label_2.setObjectName("label_2")
+        self.horizontalLayout.addWidget(self.label_2)
+        self.b = QtWidgets.QSpinBox(self.widget)
+        self.b.setMinimum(-999)
+        self.b.setMaximum(999)
+        self.b.setObjectName("b")
+        self.horizontalLayout.addWidget(self.b)
+        self.verticalLayout.addWidget(self.widget)
+        self.buttonBox = QtWidgets.QDialogButtonBox(shiftDialog)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.verticalLayout.addWidget(self.buttonBox)
+
+        self.retranslateUi(shiftDialog)
+        self.buttonBox.accepted.connect(shiftDialog.accept)
+        self.buttonBox.rejected.connect(shiftDialog.reject)
+        QtCore.QMetaObject.connectSlotsByName(shiftDialog)
+
+    def retranslateUi(self, shiftDialog):
+        _translate = QtCore.QCoreApplication.translate
+        shiftDialog.setWindowTitle(_translate("shiftDialog", "Global Frame Shift"))
+        self.suggestion.setText(_translate("shiftDialog", "Suggested values:"))
+        self.label.setText(_translate("shiftDialog", "Start:"))
+        self.label_2.setText(_translate("shiftDialog", "End:"))
 

@@ -21,8 +21,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mpv import MPV
-from gui import Ui_root
-from shift_dialog import Ui_Dialog
+from gui import Ui_main, Ui_shiftDialog
 
 
 doc = """ffcutter
@@ -75,7 +74,6 @@ If program crashes try to rerun it (duh).
 # TODO
 # write installation guide
 # make windows standalone executable
-# merge gui modules as one
 # handle keystrokes from terminal too
 # mpv keyframe/anchor jumps often fail, any way to fix that?
 # don't generate concat when just one segment
@@ -123,7 +121,7 @@ class GUI(QtWidgets.QDialog):
         colorama.init()
 
         # set up the user interface from Designer
-        self.ui = Ui_root()
+        self.ui = Ui_main()
         self.ui.setupUi(self)
         self.setWindowTitle('ffcutter - ' + os.path.split(filename)[-1])
         self.setFocus(True)
@@ -173,7 +171,7 @@ class GUI(QtWidgets.QDialog):
             self.save_state()
 
         dialog = QtWidgets.QDialog(self)
-        wrapper = Ui_Dialog()
+        wrapper = Ui_shiftDialog()
         wrapper.setupUi(dialog)
         wrapper.a.setValue(self.ffmpeg_shift_a)
         wrapper.b.setValue(self.ffmpeg_shift_b)
