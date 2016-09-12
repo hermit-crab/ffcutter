@@ -72,7 +72,6 @@ If program crashes try to rerun it (duh).
 """
 
 # TODO
-# write installation guide
 # make windows standalone executable
 # handle keystrokes from terminal too
 # mpv keyframe/anchor jumps often fail, any way to fix that?
