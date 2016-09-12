@@ -860,6 +860,7 @@ class GUI(QtWidgets.QDialog):
 
                     if not last_frame:
                         segments.append((t, self.playback_len))
+        return segments
 
     def adjust_segements(self, segments):
 
