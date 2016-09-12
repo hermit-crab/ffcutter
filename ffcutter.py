@@ -481,7 +481,6 @@ class GUI(QtWidgets.QDialog):
                 continue
 
             if ': Video:' in line:
-                self.print()
                 sep('VIDEO')
                 color = colorama.Fore.LIGHTCYAN_EX
                 style = colorama.Style.BRIGHT
@@ -489,9 +488,10 @@ class GUI(QtWidgets.QDialog):
                 # we (I) are mostly interested in video bitrate, so
                 line = re.sub(r'\b\d+\s+\w+/s\b', color + style + r'\g<0>' + reset, line)
                 self.print(line)
+            elif line.startswith('At least'):
+                continue
             else:
                 if ': Audio:' in line:
-                    self.print()
                     sep('AUDIO')
                 self.print(line)
         self.print()
