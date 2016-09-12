@@ -100,6 +100,8 @@ class GUI(QtWidgets.QDialog):
         self.anchor = None # single anchor position that hasn't become a segment
         self.closest_anchor = None # self.anchor or anchor closest to playback_pos
 
+        self.state_loaded = False
+
         self.show_keyframes = False
         self.running_ffmpeg = False
 
@@ -351,8 +353,7 @@ class GUI(QtWidgets.QDialog):
 
         # start the building process
 
-        cmd = [self.ffprobe_bin] + '-show_frames -show_entries frame=best_effort_timestamp_time,pict_type -select_streams v -v error'.split()
-        cmd.append(self.filename)
+        cmd = [self.ffprobe_bin, self.filename] + '-show_frames -show_entries frame=best_effort_timestamp_time,pict_type -select_streams v -v error'.split()
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
         def progress(n):
@@ -391,8 +392,7 @@ class GUI(QtWidgets.QDialog):
 
     def _load_timestamps_from_packets(self):
 
-        cmd = [self.ffprobe_bin] + '-show_packets -show_entries packet=pts_time,dts_time,flags -select_streams v -v error'.split()
-        cmd.append(self.filename)
+        cmd = [self.ffprobe_bin, self.filename] + '-show_packets -show_entries packet=pts_time,dts_time,flags -select_streams v -v error'.split()
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
         pts = []
@@ -531,15 +531,9 @@ class GUI(QtWidgets.QDialog):
         def on_player_loaded():
             if self.ffmpeg_bin:
                 self.check_ffmpeg_seek_problem()
+            self.load_state()
             self.ui.loading.hide()
-            if os.path.exists(self.save_filename):
-                try:
-                    with open(self.save_filename) as f:
-                        state = json.load(f)
-                        self.apply_state(state)
-                except Exception:
-                    self.print_error('Failed loading state file:')
-                    traceback.print_exc()
+            self.state_loaded = True
 
         self.player_loaded.connect(on_player_loaded)
 
@@ -622,7 +616,7 @@ class GUI(QtWidgets.QDialog):
 
         ################################
 
-        if self.playback_pos is None:
+        if self.playback_pos is None or not self.state_loaded:
             return
 
         ################################
@@ -835,6 +829,16 @@ class GUI(QtWidgets.QDialog):
                 json.dump(self.get_state(), f, indent=True, sort_keys=True)
         except IOError as e:
             self.print_error(e)
+
+    def load_state(self):
+        if os.path.exists(self.save_filename):
+            try:
+                with open(self.save_filename) as f:
+                    state = json.load(f)
+                    self.apply_state(state)
+            except Exception:
+                self.print_error('Failed loading state file:')
+                traceback.print_exc()
 
     # Encoding ####################################################################################
     ###############################################################################################
