@@ -3,7 +3,7 @@
  <class>shiftDialog</class>
  <widget class="QDialog" name="shiftDialog">
   <property name="windowModality">
-   <enum>Qt::NonModal</enum>
+   <enum>Qt::ApplicationModal</enum>
   </property>
   <property name="geometry">
    <rect>

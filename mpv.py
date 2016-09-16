@@ -13,7 +13,7 @@ import traceback
 # vim: ts=4 sw=4 et
 
 if os.name == 'nt':
-    backend = CDLL(ctypes.util.find_library('mpv-1.dll'))
+    backend = CDLL('mpv-1.dll')
     fs_enc = 'utf-8'
 else:
     import locale

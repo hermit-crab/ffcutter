@@ -1,0 +1,4 @@
+colorama
+docopt
+PyQt5
+PyInstaller

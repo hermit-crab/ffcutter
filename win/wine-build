@@ -1,0 +1,40 @@
+#!/bin/bash
+cd "`dirname "$0"`"
+
+mkdir wine-python 2> /dev/null
+
+export WINEPREFIX=`readlink -f wine-python`
+export WINEDEBUG=fixme-all
+
+
+if [[ ! -d ffmpeg ]]; then
+    wget https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-latest-win64-static.7z
+    7z e ffmpeg-latest-win64-static.7z -offmpeg || exit 1
+fi
+
+if ! wine conda -V; then
+    [[ -f Miniconda3-latest-Windows-x86_64.exe ]] || wget https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe || exit 1
+    echo
+    echo 'Do not modify conda installation options.'
+    echo
+    wine Miniconda3-latest-Windows-x86_64.exe || exit 1
+    wine conda install -y pywin32
+    wine pip install -r requirements.txt
+fi
+
+wine python -m PyInstaller \
+            --name=ffcutter \
+            --paths 'C:\Miniconda3\Lib\site-packages\PyQt5\Qt\bin' \
+            ../ffcutter.py || exit 1
+
+cp mpv-1.dll dist/ffcutter/
+cp D3DCompiler_43.dll dist/ffcutter/
+cp ffmpeg/ffprobe.exe dist/ffcutter/
+cp ffmpeg/ffmpeg.exe dist/ffcutter/
+
+cd ..
+commit=`git rev-parse --short HEAD`
+cd -
+
+cd dist
+zip -r ../ffcutter.win64.$commit.zip ffcutter

@@ -50,6 +50,7 @@ Default mpv options:
 Program state is saved into the save file on every user action.
 
 GUI keys:
+
     space - Play/pause.
     arrows - Step frames.
     ctrl + arrows - Step seconds.
@@ -61,8 +62,10 @@ GUI keys:
     z - Put anchor on the current playback position.
     x - Remove highlighted anchor.
 
-    k - Show keyframes on the seekbar.
+    h - Print this help message to the terminal.
     i - Print input file information to the terminal.
+    k - Show keyframes on the seekbar.
+
     o - Open resulted file.
     ctrl + o - Open its directory.
 
@@ -72,7 +75,6 @@ If program crashes try to rerun it (duh).
 """
 
 # TODO
-# make windows standalone executable
 # handle keystrokes from terminal too
 # mpv keyframe/anchor jumps often fail, any way to fix that?
 # don't generate concat when just one segment
@@ -122,6 +124,7 @@ class GUI(QtWidgets.QDialog):
         # set up the user interface from Designer
         self.ui = Ui_main()
         self.ui.setupUi(self)
+        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
         self.setWindowTitle('ffcutter - ' + os.path.split(filename)[-1])
         self.setFocus(True)
 
@@ -172,6 +175,7 @@ class GUI(QtWidgets.QDialog):
         dialog = QtWidgets.QDialog(self)
         wrapper = Ui_shiftDialog()
         wrapper.setupUi(dialog)
+        dialog.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint)
         wrapper.a.setValue(self.ffmpeg_shift_a)
         wrapper.b.setValue(self.ffmpeg_shift_b)
         dialog.accepted.connect(set_shifts)
@@ -184,7 +188,12 @@ class GUI(QtWidgets.QDialog):
 
         self.ffmpeg_bin = 'ffmpeg'
         self.ffprobe_bin = 'ffprobe'
-        if os.name == 'nt':
+
+        if getattr(sys, 'frozen', False):
+            dirname = os.path.split(sys.executable)[0]
+            self.ffmpeg_bin = os.path.join(dirname, 'ffmpeg.exe')
+            self.ffprobe_bin = os.path.join(dirname, 'ffprobe.exe')
+        elif os.name == 'nt':
             dirname = os.path.split(__file__)[0]
             self.ffmpeg_bin = os.path.join(dirname, 'ffmpeg.exe')
             self.ffprobe_bin = os.path.join(dirname, 'ffprobe.exe')
@@ -672,6 +681,10 @@ class GUI(QtWidgets.QDialog):
 
             self.print_video_info()
 
+        elif k == Qt.Key_H:
+
+            self.print(doc)
+
         ################################
 
         if self.playback_pos is None or not self.state_loaded:
@@ -834,7 +847,7 @@ class GUI(QtWidgets.QDialog):
 
         self.segments = list(sorted(self.segments, key=lambda t: t[0]))
 
-        self.print('> put, move №%s, %s segments' % (move, len(self.segments)))
+        print('put, move #%s, %s segments' % (move, len(self.segments)))
         self.print_segments()
         self.save_state()
         self.ui.seekbar.update()

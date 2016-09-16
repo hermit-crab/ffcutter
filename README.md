@@ -14,7 +14,9 @@ FFmpeg may not be available in default repositories. Refer to the [ffmpeg downlo
 > pacman -S ffmpeg python-pyqt5 python-docopt python-colorama mpv
 ```
 #####Windows
-Someday...
+Latest all included x86_64 only archive is available in [releases](https://github.com/Unknowny/ffcutter/releases).  
+Run ffcutter.exe from terminal or drop video file into it. Press H to print help message to the terminal.  
+If you encounter ucrtbase.terminate error install this windows update - [KB2999226](https://www.microsoft.com/en-us/download/details.aspx?id=49093).
 
 ###Usage
 ```

@@ -133,6 +133,9 @@
       </item>
       <item>
        <widget class="QCheckBox" name="twoPass">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
         <property name="text">
          <string>2-pass</string>
         </property>
@@ -146,6 +149,12 @@
       </item>
       <item>
        <widget class="QToolButton" name="toggleArgsEdit">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>23</height>
+         </size>
+        </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
@@ -162,6 +171,18 @@
       </item>
       <item>
        <widget class="QToolButton" name="print">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>23</height>
+         </size>
+        </property>
+        <property name="sizeIncrement">
+         <size>
+          <width>10</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
@@ -178,6 +199,12 @@
       </item>
       <item>
        <widget class="QToolButton" name="run">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>23</height>
+         </size>
+        </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
