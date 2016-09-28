@@ -14,7 +14,7 @@ or
 then
 > git clone https://github.com/Unknowny/ffcutter.git
 ```
-Python dependencies can also be installed with `pip install pyqt4 docopt colorama`.  
+Python dependencies can also be installed with `pip install pyqt5 docopt colorama`.  
 FFmpeg may not be available in default repositories. Refer to the [ffmpeg download page](https://ffmpeg.org/download.html#build-linux).
 
 #####Windows
