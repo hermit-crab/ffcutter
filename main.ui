@@ -26,7 +26,16 @@
    <property name="spacing">
     <number>3</number>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>3</number>
+   </property>
+   <property name="topMargin">
+    <number>3</number>
+   </property>
+   <property name="rightMargin">
+    <number>3</number>
+   </property>
+   <property name="bottomMargin">
     <number>3</number>
    </property>
    <item>
@@ -239,10 +248,8 @@
      <property name="styleSheet">
       <string notr="true">:focus {
 	border: 5px solid;
-	border-color: red;
-}
-
-</string>
+	border-color: rgb(48, 188, 215);
+}</string>
      </property>
      <property name="plainText">
       <string>out: 
