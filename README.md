@@ -1,5 +1,7 @@
+[WARNING] Partly broken, development on hold, needs total redesign, rewrite and simplification.
+
 ### ffcutter
-Command line + gui utility to cut videos using ffmpeg.
+Command line + gui utility to cut videos using ffmpeg. Analog of VirtualDub/Avidemux.
 
 ![Screenshot](http://i.imgur.com/IwVuoMG.png)
 
