@@ -236,6 +236,14 @@
        <height>90</height>
       </size>
      </property>
+     <property name="styleSheet">
+      <string notr="true">:focus {
+	border: 5px solid;
+	border-color: red;
+}
+
+</string>
+     </property>
      <property name="plainText">
       <string>out: 
 # FFmpeg output arguments.
