@@ -3,7 +3,7 @@ cd "`dirname "$0"`"
 
 mkdir wine-python 2> /dev/null
 
-export WINEPREFIX=`readlink -f wine-python`
+export WINEPREFIX=$PWD/wine-python
 export WINEDEBUG=fixme-all
 
 
