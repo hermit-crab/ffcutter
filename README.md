@@ -1,4 +1,4 @@
-[WARNING] Partly broken, development on hold, needs total redesign, rewrite and simplification.
+[WARNING] Partly broken, development stopped. Better alternative: https://github.com/mifi/lossless-cut.
 
 ### ffcutter
 Command line + gui utility to cut videos using ffmpeg. Analog of VirtualDub/Avidemux.
